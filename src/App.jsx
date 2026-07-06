@@ -1,122 +1,118 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
 
-function App() {
-  const [count, setCount] = useState(0)
+import Navbar          from "./pages/Navbar";
+import Home            from "./pages/Home";
+import Login           from "./pages/Login";
+import Register        from "./pages/Register";
+import Search          from "./pages/Search";
+import PharmacyDetails from "./pages/PharmacyDetails";
+import Reservations    from "./pages/Reservations";
+import Emergency       from "./pages/Emergency";
+import Profile         from "./pages/Profile";
+import Vendor          from "./pages/Vendor";
+import Dashboard       from "./pages/Dashboard";
+import AdminPanel      from "./pages/AdminPanel";
+import NotFound        from "./pages/NotFound";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+import NotifyPanel    from "./components/NotifyPanel";
+
+import { getAllNotifications } from "./Reducer/NotificationSlice";
+
+// NOTE: adjust this key to whatever your Login.jsx actually stores the auth
+// payload under (e.g. "quickmeds_token", "energy_token", etc.)
+const AUTH_STORAGE_KEY = "quickmeds_token";
+
+const getToken = () => {
+  const stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
+  return stored ? JSON.parse(stored)?.token : null;
+};
+
+const getRole = () => {
+  const stored = sessionStorage.getItem(AUTH_STORAGE_KEY);
+  return stored ? JSON.parse(stored)?.role : null;
+};
+
+// Simple admin gate built on top of your ProtectedRoute component.
+// Swap this out if you already have a dedicated AdminRoute.jsx.
+const AdminGate = ({ children }) => {
+  const token = getToken();
+  const role = getRole();
+  if (!token) return <Navigate to="/login" replace />;
+  if (role !== "admin") return <Navigate to="/" replace />;
+  return children;
+};
+
+const AppLayout = () => {
+  const location = useLocation();
+  const dispatch = useDispatch();
+
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const { notifications } = useSelector((s) => s.notification);
+
+  const hideNavbarRoutes = ["/", "/login", "/register", "/admin"];
+  const hideNavbar = hideNavbarRoutes.includes(location.pathname);
+
+  const handleNotifyOpen = () => {
+    dispatch(getAllNotifications()); // ensure notifications are fresh
+    setNotifyOpen(true);
+  };
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      {!hideNavbar && <Navbar onNotifyOpen={handleNotifyOpen} />}
 
-      <div className="ticks"></div>
+      <NotifyPanel
+        notifications={notifications}
+        open={notifyOpen}
+        onClose={() => setNotifyOpen(false)}
+      />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <Routes>
+        <Route path="/"         element={<Home />} />
+        <Route path="/login"    element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+        <Route path="/search" element={
+          <ProtectedRoute><Search /></ProtectedRoute>
+        } />
+        <Route path="/pharmacy/:id" element={
+          <ProtectedRoute><PharmacyDetails /></ProtectedRoute>
+        } />
+        <Route path="/reservations" element={
+          <ProtectedRoute><Reservations /></ProtectedRoute>
+        } />
+        <Route path="/emergency" element={
+          <ProtectedRoute><Emergency /></ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute><Profile /></ProtectedRoute>
+        } />
+        <Route path="/vendor" element={
+          <ProtectedRoute><Vendor /></ProtectedRoute>
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute><Dashboard /></ProtectedRoute>
+        } />
+
+        <Route path="/admin" element={
+          <AdminGate><AdminPanel /></AdminGate>
+        } />
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </>
-  )
+  );
+};
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppLayout />
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
