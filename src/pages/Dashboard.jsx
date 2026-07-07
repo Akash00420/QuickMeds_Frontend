@@ -1,13 +1,42 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useSelector, useDispatch } from 'react-redux'
 import { Package, AlertTriangle, Clock, TrendingUp, ArrowUpRight, Sparkles, MapPin, Clock3 } from 'lucide-react'
-import { usePharmacy } from '../../contexts/PharmacyContext'
-import { demandChartData } from '../../data/mockData'
-import { formatCurrency, formatRelativeTime } from '../../lib/utils'
+import { getPharmacyStats, getActivityFeed, getDemandTrends } from '../Reducer/PharmacySlice'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import '../assets/custom.css'
 
 const COLORS = ['#0d9488', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6']
+
+function formatCurrency(amount) {
+  const value = Number(amount) || 0
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function formatRelativeTime(time) {
+  if (!time) return ''
+
+  const date = new Date(time)
+  if (isNaN(date.getTime())) return String(time) // e.g. already "2m ago"
+
+  const now = new Date()
+  const diffMs = now - date
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+  const diffHr = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHr / 24)
+
+  if (diffSec < 60) return 'Just now'
+  if (diffMin < 60) return `${diffMin}m ago`
+  if (diffHr < 24) return `${diffHr}h ago`
+  if (diffDay < 7) return `${diffDay}d ago`
+
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
 
 const productOptions = [
   { id: 'paracetamol', label: 'Paracetamol 500mg' },
@@ -63,7 +92,10 @@ function Badge({ variant = 'info', children }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { stats, activityFeed } = usePharmacy()
+  const dispatch = useDispatch()
+
+  const { stats, activityFeed, demandTrends, loading, error } = useSelector(s => s.pharmacy)
+
   const [chartPeriod, setChartPeriod] = useState('daily')
   const [selectedProduct, setSelectedProduct] = useState(productOptions[0].id)
   const [purchaseQty, setPurchaseQty] = useState(100)
@@ -71,7 +103,14 @@ export default function Dashboard() {
   const [sellingPrice, setSellingPrice] = useState(45)
   const [logisticsCost, setLogisticsCost] = useState(1200)
   const [marketingCost, setMarketingCost] = useState(900)
-  const chartData = demandChartData[chartPeriod]
+
+  useEffect(() => {
+    dispatch(getPharmacyStats())
+    dispatch(getActivityFeed())
+    dispatch(getDemandTrends())
+  }, [dispatch])
+
+  const chartData = demandTrends?.[chartPeriod] || []
 
   const calculator = useMemo(() => {
     const totalPurchaseCost = purchaseQty * purchasePrice
@@ -104,6 +143,31 @@ export default function Dashboard() {
   const badgeForDemand = item =>
     item.badge === 'Urgent Need' ? 'danger' : item.badge === 'High Demand' ? 'success' : 'warning'
 
+  if (loading) {
+    return (
+      <div className="loader-container"><div className="spinner" /></div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="dash-empty">
+        <h3>Something went wrong</h3>
+        <p>{error}</p>
+        <button
+          className="dash-upload-btn"
+          onClick={() => {
+            dispatch(getPharmacyStats())
+            dispatch(getActivityFeed())
+            dispatch(getDemandTrends())
+          }}
+        >
+          Try Again
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="dashboard">
       {/* Hero */}
@@ -117,7 +181,22 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Executive KPIs */}
+      {/* KPI cards from real stats */}
+      <div className="kpi-grid">
+        {kpis.map(item => (
+          <button key={item.label} className="kpi-card" onClick={() => navigate(item.link)}>
+            <div className="kpi-icon">
+              <item.icon className="icon-md" />
+            </div>
+            <div>
+              <p className="kpi-label">{item.label}</p>
+              <p className="kpi-value">{item.value}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Executive KPIs (static demo metrics, wire to real data when available) */}
       <div className="kpi-grid">
         {executiveKpis.map(item => (
           <div key={item.label} className="kpi-card">
@@ -367,18 +446,24 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="card-content">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Legend />
-              {Object.keys(chartData[0]).filter(k => k !== 'day').map((key, i) => (
-                <Line key={key} type="monotone" dataKey={key} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={false} />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Legend />
+                {Object.keys(chartData[0]).filter(k => k !== 'day').map((key, i) => (
+                  <Line key={key} type="monotone" dataKey={key} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={false} />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: '#94a3b8', fontSize: '14px' }}>
+              No demand trend data available yet.
+            </div>
+          )}
         </div>
       </div>
 

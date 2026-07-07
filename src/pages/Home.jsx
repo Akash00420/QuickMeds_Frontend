@@ -1,5 +1,5 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import './Home.css'
+import '../assets/custom.css'
 
 const navLinks = ['Home', 'About', 'Service', 'Contact']
 

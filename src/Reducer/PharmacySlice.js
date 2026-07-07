@@ -34,6 +34,20 @@ export const getActivityFeed = createAsyncThunk(
   }
 );
 
+export const getDemandTrends = createAsyncThunk(
+  "pharmacy/getDemandTrends",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axios.get(`${API_URL}/demand-trends`);
+      return res.data; // expected: array of { date, medicineName, demandCount } or similar time-series shape
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to fetch demand trends"
+      );
+    }
+  }
+);
+
 /* ---------- Initial State ---------- */
 
 const initialState = {
@@ -44,6 +58,7 @@ const initialState = {
     pendingReservations: 0,
   },
   activityFeed: [],
+  demandTrends: [],
   loading: false,
   error: null,
 };
@@ -81,6 +96,16 @@ const pharmacySlice = createSlice({
         state.activityFeed = action.payload;
       })
       .addCase(getActivityFeed.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      // demand trends
+      .addCase(getDemandTrends.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(getDemandTrends.fulfilled, (state, action) => {
+        state.demandTrends = action.payload;
+      })
+      .addCase(getDemandTrends.rejected, (state, action) => {
         state.error = action.payload;
       });
   },
