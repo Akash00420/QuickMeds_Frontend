@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import api from "../store/Api";
 
-const API_URL = "/api/reservation";
+const API_URL = "/reservations";
 
 /* ---------- Async Thunks ---------- */
 
@@ -9,7 +9,7 @@ export const getAllReservations = createAsyncThunk(
   "reservation/getAll",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}`);
+      const res = await api.get(`${API_URL}`);
       return res.data; // expected: array of { _id, medicineName, userName, status, quantity, ... }
     } catch (err) {
       return rejectWithValue(
@@ -23,7 +23,7 @@ export const createReservation = createAsyncThunk(
   "reservation/create",
   async (reservationData, { rejectWithValue }) => {
     try {
-      const res = await axios.post(`${API_URL}`, reservationData);
+      const res = await api.post(`${API_URL}`, reservationData);
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -37,7 +37,7 @@ export const updateReservationStatus = createAsyncThunk(
   "reservation/updateStatus",
   async ({ id, status }, { rejectWithValue }) => {
     try {
-      const res = await axios.patch(`${API_URL}/${id}/status`, { status });
+      const res = await api.patch(`${API_URL}/${id}/status`, { status });
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -51,7 +51,7 @@ export const cancelReservation = createAsyncThunk(
   "reservation/cancel",
   async (id, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await api.delete(`${API_URL}/${id}`);
       return id;
     } catch (err) {
       return rejectWithValue(

@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import api from "../store/Api";
 
-const API_URL = "/api/notification";
+const API_URL = "/notifications";
 
 /* ---------- Async Thunks ---------- */
 
@@ -9,7 +9,7 @@ export const getAllNotifications = createAsyncThunk(
   "notification/getAll",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}`);
+      const res = await api.get(`${API_URL}`);
       return res.data; // expected: array of { _id, message, type, read, createdAt, link }
     } catch (err) {
       return rejectWithValue(
@@ -23,7 +23,7 @@ export const markNotificationRead = createAsyncThunk(
   "notification/markRead",
   async (id, { rejectWithValue }) => {
     try {
-      const res = await axios.patch(`${API_URL}/${id}/read`);
+      const res = await api.patch(`${API_URL}/${id}/read`);
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -37,7 +37,7 @@ export const markAllNotificationsRead = createAsyncThunk(
   "notification/markAllRead",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.patch(`${API_URL}/read-all`);
+      const res = await api.patch(`${API_URL}/read-all`);
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -51,7 +51,7 @@ export const deleteNotification = createAsyncThunk(
   "notification/delete",
   async (id, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await api.delete(`${API_URL}/${id}`);
       return id;
     } catch (err) {
       return rejectWithValue(

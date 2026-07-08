@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import api from "../store/Api";
 
 // Adjust this to match your actual backend base URL / axios instance
-const API_URL = "/api/pharmacy";
+const API_URL = "/pharmacies";
 
 /* ---------- Async Thunks ---------- */
 
@@ -10,7 +10,7 @@ export const getPharmacyStats = createAsyncThunk(
   "pharmacy/getStats",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}/stats`);
+      const res = await api.get(`${API_URL}/stats`);
       return res.data; // expected: { totalMedicines, lowStock, criticalStock, pendingReservations }
     } catch (err) {
       return rejectWithValue(
@@ -24,7 +24,7 @@ export const getActivityFeed = createAsyncThunk(
   "pharmacy/getActivityFeed",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}/activity`);
+      const res = await api.get(`${API_URL}/activity`);
       return res.data; // expected: array of { id, type, message, link, time }
     } catch (err) {
       return rejectWithValue(
@@ -38,7 +38,7 @@ export const getDemandTrends = createAsyncThunk(
   "pharmacy/getDemandTrends",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}/demand-trends`);
+      const res = await api.get(`${API_URL}/demand-trends`);
       return res.data; // expected: array of { date, medicineName, demandCount } or similar time-series shape
     } catch (err) {
       return rejectWithValue(

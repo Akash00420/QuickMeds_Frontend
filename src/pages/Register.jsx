@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, Eye, EyeOff } from 'lucide-react'
-import './Register.css'
+import '../assets/custom.css'
 
 function GoogleIcon() {
   return (

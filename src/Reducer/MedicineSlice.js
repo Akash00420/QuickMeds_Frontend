@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import api from "../store/Api";
 
-const API_URL = "/api/medicine";
+const API_URL = "/medicines";
 
 /* ---------- Async Thunks ---------- */
 
@@ -9,7 +9,7 @@ export const getAllMedicines = createAsyncThunk(
   "medicine/getAll",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}`);
+      const res = await api.get(`${API_URL}`);
       return res.data; // expected: array of { _id, name, stock, price, category, ... }
     } catch (err) {
       return rejectWithValue(
@@ -23,7 +23,7 @@ export const getMedicineById = createAsyncThunk(
   "medicine/getById",
   async (id, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}/${id}`);
+      const res = await api.get(`${API_URL}/${id}`);
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -37,7 +37,7 @@ export const addMedicine = createAsyncThunk(
   "medicine/add",
   async (medicineData, { rejectWithValue }) => {
     try {
-      const res = await axios.post(`${API_URL}`, medicineData);
+      const res = await api.post(`${API_URL}`, medicineData);
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -51,7 +51,7 @@ export const updateMedicine = createAsyncThunk(
   "medicine/update",
   async ({ id, updates }, { rejectWithValue }) => {
     try {
-      const res = await axios.put(`${API_URL}/${id}`, updates);
+      const res = await api.put(`${API_URL}/${id}`, updates);
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -65,7 +65,7 @@ export const deleteMedicine = createAsyncThunk(
   "medicine/delete",
   async (id, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await api.delete(`${API_URL}/${id}`);
       return id;
     } catch (err) {
       return rejectWithValue(

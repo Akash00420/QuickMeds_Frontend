@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import api from "../store/Api";
 
-const API_URL = "/api/emergency";
+const API_URL = "/emergency";
 
 /* ---------- Async Thunks ---------- */
 
@@ -9,7 +9,7 @@ export const getAllEmergencyRequests = createAsyncThunk(
   "emergency/getAll",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}`);
+      const res = await api.get(`${API_URL}`);
       return res.data; // expected: array of { _id, medicineName, location, status, requestedBy, ... }
     } catch (err) {
       return rejectWithValue(
@@ -23,7 +23,7 @@ export const createEmergencyRequest = createAsyncThunk(
   "emergency/create",
   async (requestData, { rejectWithValue }) => {
     try {
-      const res = await axios.post(`${API_URL}`, requestData);
+      const res = await api.post(`${API_URL}`, requestData);
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -37,7 +37,7 @@ export const updateEmergencyStatus = createAsyncThunk(
   "emergency/updateStatus",
   async ({ id, status }, { rejectWithValue }) => {
     try {
-      const res = await axios.patch(`${API_URL}/${id}/status`, { status });
+      const res = await api.patch(`${API_URL}/${id}/status`, { status });
       return res.data;
     } catch (err) {
       return rejectWithValue(
@@ -51,7 +51,7 @@ export const getNearbyEmergencyPharmacies = createAsyncThunk(
   "emergency/getNearbyPharmacies",
   async ({ lat, lng }, { rejectWithValue }) => {
     try {
-      const res = await axios.get(`${API_URL}/nearby`, { params: { lat, lng } });
+      const res = await api.get(`${API_URL}/nearby`, { params: { lat, lng } });
       return res.data; // expected: array of pharmacies with distance/stock info
     } catch (err) {
       return rejectWithValue(

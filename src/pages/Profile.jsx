@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Camera, Mail, Phone, MapPin, ShieldCheck, Eye, EyeOff } from 'lucide-react'
-import './Profile.css'
+import '../assets/custom.css'
 
 const initialProfile = {
   fullName: 'Ananya Sharma',
