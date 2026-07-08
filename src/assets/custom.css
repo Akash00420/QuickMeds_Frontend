@@ -1123,3 +1123,315 @@
 .carousel-arrow:hover {
   filter: brightness(0.95);
 }
+
+/*-----------------------------------
+REGISTER
+------------------------------------*/
+.register-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+    radial-gradient(circle at 30% 20%, #cfe8f7 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, #e6f0fb 0%, transparent 55%),
+    #eef3f8;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 940px;
+  min-height: 560px;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  background: #ffffff;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.25);
+}
+
+@media (max-width: 780px) {
+  .register-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Left panel — form                                                  */
+/* ---------------------------------------------------------------- */
+.register-panel {
+  padding: 2.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.register-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.register-logo-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: #2f8ff2;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.register-logo-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.register-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.4rem;
+}
+
+.register-subtitle {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0 0 1.5rem;
+  line-height: 1.4;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.register-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .register-field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.register-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.register-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.register-input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.85rem;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.register-input::placeholder {
+  color: #b3bcc9;
+}
+
+.register-input:focus {
+  border-color: #2f8ff2;
+  box-shadow: 0 0 0 3px rgba(47, 143, 242, 0.15);
+  background: #fff;
+}
+
+.register-input.has-error {
+  border-color: #ef4444;
+}
+
+.register-input.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.register-error {
+  font-size: 0.72rem;
+  color: #ef4444;
+}
+
+.register-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.register-input-wrap .register-input {
+  padding-right: 2.5rem;
+}
+
+.register-input-icon-btn {
+  position: absolute;
+  right: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.register-input-icon-btn:hover {
+  color: #64748b;
+}
+
+.register-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.4;
+  margin-top: 0.2rem;
+  cursor: pointer;
+}
+
+.register-checkbox-row input {
+  margin-top: 0.15rem;
+  accent-color: #2f8ff2;
+  flex-shrink: 0;
+}
+
+.register-checkbox-row a {
+  color: #2f8ff2;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.register-checkbox-row a:hover {
+  text-decoration: underline;
+}
+
+.register-submit {
+  margin-top: 0.3rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 0.6rem;
+  background: #2f8ff2;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.register-submit:hover {
+  background: #1c7ce0;
+}
+
+.register-signin {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0.2rem 0 0;
+}
+
+.register-signin a {
+  color: #2f8ff2;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.register-signin a:hover {
+  text-decoration: underline;
+}
+
+.register-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #b3bcc9;
+  font-size: 0.75rem;
+  margin: 0.3rem 0;
+}
+
+.register-divider::before,
+.register-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.register-divider span {
+  padding: 0 0.75rem;
+}
+
+.register-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.6rem;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.register-google:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.register-google-icon {
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------- */
+/* Right panel — media                                                */
+/* ---------------------------------------------------------------- */
+.register-media {
+  position: relative;
+  background:
+    linear-gradient(160deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.35)),
+    linear-gradient(135deg, #dbeafe 0%, #bfdbfe 45%, #93c5fd 100%);
+}
+
+.register-media::after {
+  /* Swap this background-image for your own pharmacy / product photo */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/pharmacist.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.9;
+}
+
+@media (max-width: 780px) {
+  .register-media {
+    display: none;
+  }
+}
