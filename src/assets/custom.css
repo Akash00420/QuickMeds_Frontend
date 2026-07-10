@@ -1,10 +1,23 @@
 /* ---------------------------------------------------------------- */
-/* DASBOARD LAYOUT                                                 */
+/* DASHBOARD LAYOUT                                                   */
 /* ---------------------------------------------------------------- */
 .dashboard {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding: 2rem 2.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: calc(100vh - 64px);
+  background: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 1rem;
+  }
 }
 
 
@@ -843,20 +856,10 @@
 /* ---------------------------------------------------------------- */
 .login-media {
   position: relative;
-  background:
-    linear-gradient(160deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.35)),
-    linear-gradient(135deg, #dbeafe 0%, #bfdbfe 45%, #93c5fd 100%);
-}
-
-.login-media::after {
-  /* Swap this background-image for your own pharmacist / product photo */
-  content: '';
-  position: absolute;
-  inset: 0;
   background-image: url('/pharmacist.jpg');
   background-size: cover;
-  background-position: center;
-  opacity: 0.9;
+  background-position: center top;
+  border-radius: 0 1.75rem 1.75rem 0;
 }
 
 @media (max-width: 720px) {
@@ -1414,20 +1417,10 @@ REGISTER
 /* ---------------------------------------------------------------- */
 .register-media {
   position: relative;
-  background:
-    linear-gradient(160deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.35)),
-    linear-gradient(135deg, #dbeafe 0%, #bfdbfe 45%, #93c5fd 100%);
-}
-
-.register-media::after {
-  /* Swap this background-image for your own pharmacy / product photo */
-  content: '';
-  position: absolute;
-  inset: 0;
   background-image: url('/pharmacist.jpg');
   background-size: cover;
-  background-position: center;
-  opacity: 0.9;
+  background-position: center top;
+  border-radius: 0 1.75rem 1.75rem 0;
 }
 
 @media (max-width: 780px) {

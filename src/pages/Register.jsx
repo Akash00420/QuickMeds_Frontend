@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../Reducer/AuthSlice";
+import { useNavigate, Link } from "react-router-dom";
 import { Plus, Eye, EyeOff } from 'lucide-react'
-import '../assets/custom.css'
 
 function GoogleIcon() {
   return (
@@ -16,13 +18,16 @@ function GoogleIcon() {
 const initialForm = {
   fullName: '',
   email: '',
-  phone: '',
   password: '',
   confirmPassword: '',
   agreeToTerms: false,
 }
 
-export default function Register({ onSubmit }) {
+export default function Register() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { loading, error } = useSelector((state) => state.auth);
+
   const [form, setForm] = useState(initialForm)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -36,7 +41,6 @@ export default function Register({ onSubmit }) {
     const next = {}
     if (!form.fullName.trim()) next.fullName = 'Full name is required'
     if (!form.email.trim()) next.email = 'Email address is required'
-    if (!form.phone.trim()) next.phone = 'Phone number is required'
     if (form.password.length < 8) next.password = 'Password must be at least 8 characters'
     if (form.confirmPassword !== form.password) next.confirmPassword = 'Passwords do not match'
     if (!form.agreeToTerms) next.agreeToTerms = 'You must accept the terms to continue'
@@ -44,11 +48,24 @@ export default function Register({ onSubmit }) {
     return Object.keys(next).length === 0
   }
 
-  const handleSubmit = e => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    if (loading) return
     if (!validate()) return
-    onSubmit?.(form)
+
+    const result = await dispatch(registerUser({
+      name: form.fullName,
+      email: form.email,
+      password: form.password,
+      confirm_password: form.confirmPassword,
+    }));
+
+    if (registerUser.fulfilled.match(result)) {
+      navigate("/login");
+    }
   }
+
+  const errorMessage = error?.msg || error?.message || (typeof error === "string" ? error : null);
 
   return (
     <div className="register-page">
@@ -87,17 +104,7 @@ export default function Register({ onSubmit }) {
               {errors.email && <span className="register-error">{errors.email}</span>}
             </label>
 
-            <label className="register-field">
-              <span className="register-label">Phone number</span>
-              <input
-                type="tel"
-                placeholder="+91 98765 43210"
-                value={form.phone}
-                onChange={e => updateField('phone', e.target.value)}
-                className={`register-input${errors.phone ? ' has-error' : ''}`}
-              />
-              {errors.phone && <span className="register-error">{errors.phone}</span>}
-            </label>
+
 
             <div className="register-field-row">
               <label className="register-field">
@@ -155,10 +162,14 @@ export default function Register({ onSubmit }) {
             </label>
             {errors.agreeToTerms && <span className="register-error">{errors.agreeToTerms}</span>}
 
-            <button type="submit" className="register-submit">Create account</button>
+            {errorMessage && <span className="register-error">{errorMessage}</span>}
+
+            <button type="submit" className="register-submit" disabled={loading}>
+              {loading ? "Creating Account..." : "Create account"}
+            </button>
 
             <p className="register-signin">
-              Already have an account? <a href="#">Sign in</a>
+              Already have an account? <Link to="/login">Sign in</Link>
             </p>
 
             <div className="register-divider">

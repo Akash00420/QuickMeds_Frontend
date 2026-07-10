@@ -1,4 +1,5 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import '../assets/custom.css'
 
 const navLinks = ['Home', 'About', 'Service', 'Contact']
@@ -76,6 +77,8 @@ function PharmacyIllustration() {
 }
 
 export default function Home() {
+  const navigate = useNavigate()
+
   return (
     <div className="home-page">
       <div className="home-card">
@@ -89,8 +92,8 @@ export default function Home() {
           </ul>
 
           <div className="home-auth">
-            <button className="btn-outline">Sign up</button>
-            <button className="btn-filled">Sign in</button>
+            <button className="btn-outline" onClick={() => navigate('/register')}>Sign up</button>
+            <button className="btn-filled" onClick={() => navigate('/login')}>Sign in</button>
           </div>
         </nav>
 
@@ -104,7 +107,7 @@ export default function Home() {
               Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
               incididunt ut labore et dolore magna aliqua
             </p>
-            <button className="home-cta">
+            <button className="home-cta" onClick={() => navigate('/register')}>
               GET STARTED <ArrowRight size={16} />
             </button>
           </div>

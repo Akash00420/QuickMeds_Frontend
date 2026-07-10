@@ -51,7 +51,7 @@ export const registerUser = createAsyncThunk(
 export const logoutUser = createAsyncThunk(
   "auth/logout",
   async (_, { dispatch }) => {
-    sessionStorage.removeItem("energy_token");
+    sessionStorage.removeItem("quickmeds_token");
     dispatch(logout());
   }
 );
@@ -123,7 +123,7 @@ const AuthSlice = createSlice({
       state.user       = null;
       state.token      = null;
       state.resetToken = null;
-      sessionStorage.removeItem("energy_token");
+      sessionStorage.removeItem("quickmeds_token");
     },
   },
   extraReducers: (builder) => {
@@ -139,7 +139,7 @@ const AuthSlice = createSlice({
   state.error   = null;
   state.token   = payload.token;
   state.user    = payload.user;
-  sessionStorage.setItem("energy_token", JSON.stringify({
+  sessionStorage.setItem("quickmeds_token", JSON.stringify({
     token: payload.token,
     user:  payload.user,
     role:  payload.user?.role,   // ← NEW

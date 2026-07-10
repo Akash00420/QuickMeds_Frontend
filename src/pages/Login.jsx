@@ -5,8 +5,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { login } from "../Reducer/AuthSlice";
 import { Plus, Eye, EyeOff } from 'lucide-react'
 
-
-
 function GoogleIcon() {
   return (
     <svg className="google-icon" viewBox="0 0 48 48" width="18" height="18">
@@ -18,15 +16,26 @@ function GoogleIcon() {
   )
 }
 
-export default function Login({ onSubmit }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+export default function Login() {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = e => {
-    e.preventDefault()
-    onSubmit?.({ email, password })
-  }
+  const { register, handleSubmit, formState: { errors } } = useForm();
+
+  const onSubmit = async (data) => {
+    try {
+      const result = await dispatch(login(data)).unwrap();
+      if (result?.user?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/search");
+      }
+    } catch (err) {
+      console.log("Login failed:", err);
+    }
+  };
 
   return (
     <div className="login-page">
@@ -40,17 +49,16 @@ export default function Login({ onSubmit }) {
           <h1 className="login-title">Welcome back</h1>
           <p className="login-subtitle">Order from different drugstores all around the country</p>
 
-          <form className="login-form" onSubmit={handleSubmit}>
+          <form className="login-form" onSubmit={handleSubmit(onSubmit)}>
             <label className="login-field">
               <span className="login-label">Email address</span>
               <input
                 type="email"
-                placeholder="Enter your Enter address"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                placeholder="Enter your email address"
                 className="login-input"
-                required
+                {...register("email", { required: "Email is required" })}
               />
+              {errors.email && <span className="text-red">{errors.email.message}</span>}
             </label>
 
             <label className="login-field">
@@ -59,10 +67,8 @@ export default function Login({ onSubmit }) {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
                   className="login-input"
-                  required
+                  {...register("password", { required: "Password is required" })}
                 />
                 <button
                   type="button"
@@ -73,14 +79,19 @@ export default function Login({ onSubmit }) {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {errors.password && <span className="text-red">{errors.password.message}</span>}
             </label>
 
-            <a href="#" className="login-forgot">Forgot password?</a>
+            {error && <div className="text-red error-msg">{error}</div>}
 
-            <button type="submit" className="login-submit">Login account</button>
+            <Link to="/forgot-password" className="login-forgot">Forgot password?</Link>
+
+            <button type="submit" className="login-submit" disabled={loading}>
+              {loading ? "Signing in..." : "Login account"}
+            </button>
 
             <p className="login-signup">
-              Don't you have any account? <a href="#">Sing up</a>
+              Don't have an account? <Link to="/register">Sign up</Link>
             </p>
 
             <div className="login-divider">
