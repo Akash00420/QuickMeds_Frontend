@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllMedicines } from "../Reducer/MedicineSlice";
 import { Search as SearchIcon, MapPin, Pill, Tag, ArrowRight } from "lucide-react";
@@ -11,18 +11,20 @@ export default function Search() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
+  // Fetch on mount (all medicines) and whenever searchTerm changes
   useEffect(() => {
-    dispatch(getAllMedicines());
-  }, [dispatch]);
+    const params = {};
+    if (searchTerm.trim()) params.name = searchTerm.trim();
+    if (selectedCategory !== "all") params.category = selectedCategory;
+    dispatch(getAllMedicines(params));
+  }, [dispatch, searchTerm, selectedCategory]);
+
 
   const categories = ["all", ...new Set(medicines.map((m) => m.category).filter(Boolean))];
 
-  const filteredMedicines = medicines.filter((med) => {
-    const matchesSearch = med.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (med.category && med.category.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = selectedCategory === "all" || med.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // Backend already filters — just use returned medicines directly
+  const filteredMedicines = medicines;
+
 
   return (
     <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto", minHeight: "100vh" }}>

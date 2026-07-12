@@ -5,15 +5,31 @@ const API_URL = "/medicines";
 
 /* ---------- Async Thunks ---------- */
 
+// Search medicines via GET /medicines/search?name=&category=&lat=&lng=
 export const getAllMedicines = createAsyncThunk(
   "medicine/getAll",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const res = await api.get(`${API_URL}`);
-      return res.data; // expected: array of { _id, name, stock, price, category, ... }
+      const res = await api.get(`${API_URL}/search`, { params });
+      return res.data;
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to fetch medicines"
+      );
+    }
+  }
+);
+
+// Suggest medicines via GET /medicines/suggest?q=
+export const suggestMedicines = createAsyncThunk(
+  "medicine/suggest",
+  async (q, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`${API_URL}/suggest`, { params: { q } });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to get suggestions"
       );
     }
   }
