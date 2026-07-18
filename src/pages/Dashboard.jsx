@@ -1,501 +1,489 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useSelector, useDispatch } from 'react-redux'
-import { Package, AlertTriangle, Clock, TrendingUp, ArrowUpRight, Sparkles, MapPin, Clock3 } from 'lucide-react'
-import { getPharmacyStats, getActivityFeed, getDemandTrends } from '../Reducer/PharmacySlice'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import '../assets/custom.css'
+import { useState, useEffect, useRef } from "react";
+import "../assets/qm-dashboard.css";
 
-const COLORS = ['#0d9488', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6']
+/* ─────────────────────────────────────────────────────────────────
+   MOCK DATA  –  swap with Redux / API calls as needed
+───────────────────────────────────────────────────────────────── */
+const CATEGORIES = [
+  { id: "vitamins",      label: "Vitamins",       emoji: "💊", color: "#FFF3E0", accent: "#FF6F00" },
+  { id: "skincare",      label: "Skin Care",      emoji: "🧴", color: "#FCE4EC", accent: "#E91E63" },
+  { id: "diabetes",      label: "Diabetes",       emoji: "🩸", color: "#E8F5E9", accent: "#2E7D32" },
+  { id: "cardiac",       label: "Cardiac",        emoji: "❤️", color: "#FFEBEE", accent: "#C62828" },
+  { id: "liver",         label: "Liver Care",     emoji: "🫀", color: "#F3E5F5", accent: "#7B1FA2" },
+  { id: "immunity",      label: "Immunity",       emoji: "🛡️", color: "#E3F2FD", accent: "#1565C0" },
+  { id: "pain",          label: "Pain Relief",    emoji: "🤕", color: "#FFF8E1", accent: "#F57F17" },
+  { id: "eye",           label: "Eye Care",       emoji: "👁️", color: "#E0F7FA", accent: "#006064" },
+];
 
-function formatCurrency(amount) {
-  const value = Number(amount) || 0
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+const BANNER_OFFERS = [
+  {
+    id: "b1",
+    tag: "UP TO 30% OFF",
+    title: "Medicines at\nYour Doorstep",
+    sub: "Free delivery on orders above ₹299",
+    cta: "Order Now",
+    bg: "linear-gradient(135deg, #FF6F61 0%, #FF8E53 100%)",
+    emoji: "💊",
+  },
+  {
+    id: "b2",
+    tag: "FLAT 25% OFF",
+    title: "Lab Tests at\nHome",
+    sub: "500+ tests • NABL certified labs",
+    cta: "Book Test",
+    bg: "linear-gradient(135deg, #10B190 0%, #0D8ACB 100%)",
+    emoji: "🧬",
+  },
+  {
+    id: "b3",
+    tag: "CONSULT FOR ₹99",
+    title: "Talk to a Doctor\n24 × 7",
+    sub: "General • Specialist • Ayurveda",
+    cta: "Consult Now",
+    bg: "linear-gradient(135deg, #486AAE 0%, #7C5AC9 100%)",
+    emoji: "👨‍⚕️",
+  },
+];
 
-function formatRelativeTime(time) {
-  if (!time) return ''
+const PRODUCTS = [
+  { id: "p1", name: "Limcee Vitamin C",    pack: "Chewable Tabs, 60s",    mrp: 120,  price: 90,  rating: 4.5, reviews: 2340, tag: "BESTSELLER",   emoji: "🟡", bg: "#FFFDE7" },
+  { id: "p2", name: "Zincovit Syrup",      pack: "200 ml",               mrp: 210,  price: 162, rating: 4.3, reviews: 1120, tag: "15% OFF",       emoji: "🔵", bg: "#E3F2FD" },
+  { id: "p3", name: "Becosules Capsules",  pack: "Multivitamin, 30 caps", mrp: 180,  price: 144, rating: 4.6, reviews: 4890, tag: "TATA CHOICE",   emoji: "🟢", bg: "#E8F5E9" },
+  { id: "p4", name: "Pantocid 40mg",       pack: "Strip of 15 Tabs",     mrp: 95,   price: 73,  rating: 4.1, reviews: 678,  tag: "",             emoji: "🟠", bg: "#FFF3E0" },
+  { id: "p5", name: "Allegra 120mg",       pack: "Anti-Allergy, 10 Tabs",mrp: 230,  price: 185, rating: 4.4, reviews: 3100, tag: "20% OFF",       emoji: "🟣", bg: "#F3E5F5" },
+  { id: "p6", name: "Dolo 650 Paracetamol",pack: "Strip of 15 Tabs",     mrp: 30,   price: 26,  rating: 4.7, reviews: 9870, tag: "BESTSELLER",   emoji: "🔴", bg: "#FFEBEE" },
+];
 
-  const date = new Date(time)
-  if (isNaN(date.getTime())) return String(time) // e.g. already "2m ago"
+const LAB_TESTS = [
+  { id: "lt1", name: "Full Body Checkup",   tests: "78 tests", price: 1999, originalPrice: 5500, discount: "64% off", tat: "Reports in 24 hrs" },
+  { id: "lt2", name: "Diabetes Panel",      tests: "10 tests", price: 699,  originalPrice: 1800, discount: "61% off", tat: "Reports in 6 hrs"  },
+  { id: "lt3", name: "Thyroid Profile",     tests: "3 tests",  price: 399,  originalPrice: 1200, discount: "67% off", tat: "Reports in 6 hrs"  },
+  { id: "lt4", name: "Vitamin D & B12",     tests: "2 tests",  price: 849,  originalPrice: 2400, discount: "65% off", tat: "Reports in 24 hrs" },
+];
 
-  const now = new Date()
-  const diffMs = now - date
-  const diffSec = Math.floor(diffMs / 1000)
-  const diffMin = Math.floor(diffSec / 60)
-  const diffHr = Math.floor(diffMin / 60)
-  const diffDay = Math.floor(diffHr / 24)
+const MY_ORDERS = [
+  { id: "o1", name: "Dolo 650 + Limcee",  date: "12 Jul 2026", status: "Delivered",  statusColor: "#2E7D32", statusBg: "#E8F5E9" },
+  { id: "o2", name: "Thyroid Profile Test",date: "15 Jul 2026", status: "In Transit", statusColor: "#F57F17", statusBg: "#FFF8E1" },
+  { id: "o3", name: "Becosules Capsules",  date: "16 Jul 2026", status: "Processing", statusColor: "#1565C0", statusBg: "#E3F2FD" },
+];
 
-  if (diffSec < 60) return 'Just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  if (diffHr < 24) return `${diffHr}h ago`
-  if (diffDay < 7) return `${diffDay}d ago`
+const HEALTH_FEED = [
+  { id: "h1", icon: "📖", title: "Monsoon Wellness Tips",     tag: "Article",  time: "5 min read"  },
+  { id: "h2", icon: "🎥", title: "Managing Diabetes Daily",   tag: "Video",    time: "8 min watch" },
+  { id: "h3", icon: "💡", title: "Why Vitamin D Matters",     tag: "Article",  time: "4 min read"  },
+];
 
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-}
-
-const productOptions = [
-  { id: 'paracetamol', label: 'Paracetamol 500mg' },
-  { id: 'azithromycin', label: 'Azithromycin 500mg' },
-  { id: 'vitamin-d3', label: 'Vitamin D3 60k' },
-  { id: 'metformin', label: 'Metformin 500mg' },
-]
-
-const demandBoard = [
-  { name: 'Paracetamol', requests: 1240, growth: 18, badge: 'High Demand' },
-  { name: 'Azithromycin', requests: 892, growth: 24, badge: 'Trending' },
-  { name: 'Vitamin D3', requests: 654, growth: 31, badge: 'Urgent Need' },
-]
-
-const regionalDemand = [
-  { city: 'Kolkata', demand: 88 },
-  { city: 'Delhi', demand: 76 },
-  { city: 'Mumbai', demand: 72 },
-  { city: 'Bangalore', demand: 65 },
-  { city: 'Hyderabad', demand: 58 },
-]
-
-const fastestGrowing = [
-  { name: 'Vitamin D3', growth: 31 },
-  { name: 'Azithromycin', growth: 24 },
-  { name: 'Paracetamol', growth: 18 },
-  { name: 'Metformin', growth: 15 },
-]
-
-const liveRequests = [
-  { id: 'r1', label: 'Paracetamol demand spiked from East Clinic', time: 'Just now' },
-  { id: 'r2', label: 'Urgent request for Azithromycin from city hospital', time: '2m ago' },
-  { id: 'r3', label: 'Vitamin D3 prescription flow increasing', time: '5m ago' },
-  { id: 'r4', label: 'Metformin refill requests rising', time: '8m ago' },
-]
-
-const lifecyclePredictions = [
-  { product: 'Azithromycin', status: 'Rising', variant: 'success' },
-  { product: 'Paracetamol', status: 'Stable', variant: 'info' },
-  { product: 'Vitamin D3', status: 'Falling', variant: 'warning' },
-]
-
-const executiveKpis = [
-  { label: 'Active Demand Signals', value: 3, icon: TrendingUp },
-  { label: 'Average ROI', value: '162%', icon: ArrowUpRight },
-  { label: 'Regional Hotspots', value: 5, icon: MapPin },
-  { label: 'Lifecycle Alerts', value: 3, icon: Sparkles },
-]
-
-function Badge({ variant = 'info', children }) {
-  return <span className={`badge badge-${variant}`}>{children}</span>
-}
-
+/* ─────────────────────────────────────────────────────────────────
+   COMPONENT
+───────────────────────────────────────────────────────────────── */
 export default function Dashboard() {
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
+  const [search, setSearch]         = useState("");
+  const [bannerIdx, setBannerIdx]   = useState(0);
+  const [wishlist, setWishlist]     = useState(new Set());
+  const [cart, setCart]             = useState({});
+  const [activeTab, setActiveTab]   = useState("all");
+  const autoRef                     = useRef(null);
 
-  const { stats, activityFeed, demandTrends, loading, error } = useSelector(s => s.pharmacy)
-
-  const [chartPeriod, setChartPeriod] = useState('daily')
-  const [selectedProduct, setSelectedProduct] = useState(productOptions[0].id)
-  const [purchaseQty, setPurchaseQty] = useState(100)
-  const [purchasePrice, setPurchasePrice] = useState(25)
-  const [sellingPrice, setSellingPrice] = useState(45)
-  const [logisticsCost, setLogisticsCost] = useState(1200)
-  const [marketingCost, setMarketingCost] = useState(900)
-
+  /* Auto-rotate banner */
   useEffect(() => {
-    dispatch(getPharmacyStats())
-    dispatch(getActivityFeed())
-    dispatch(getDemandTrends())
-  }, [dispatch])
+    autoRef.current = setInterval(() => {
+      setBannerIdx((i) => (i + 1) % BANNER_OFFERS.length);
+    }, 4000);
+    return () => clearInterval(autoRef.current);
+  }, []);
 
-  const chartData = demandTrends?.[chartPeriod] || []
+  const totalCartItems = Object.values(cart).reduce((a, b) => a + b, 0);
 
-  const calculator = useMemo(() => {
-    const totalPurchaseCost = purchaseQty * purchasePrice
-    const expectedRevenue = purchaseQty * sellingPrice
-    const grossProfit = expectedRevenue - totalPurchaseCost
-    const netProfit = grossProfit - logisticsCost - marketingCost
-    const investment = totalPurchaseCost + logisticsCost + marketingCost
-    const roi = investment > 0 ? (netProfit / investment) * 100 : 0
-    const unitMargin = sellingPrice - purchasePrice
-    const breakEvenPoint = unitMargin > 0 ? Math.ceil(investment / unitMargin) : null
+  const toggleWishlist = (id) =>
+    setWishlist((prev) => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
 
-    return {
-      expectedRevenue,
-      grossProfit,
-      netProfit,
-      roi,
-      breakEvenPoint,
-      investment,
-    }
-  }, [purchaseQty, purchasePrice, sellingPrice, logisticsCost, marketingCost])
+  const addToCart = (id) =>
+    setCart((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
 
-  const kpis = [
-    { label: 'Total Medicines', value: stats.totalMedicines, icon: Package, link: '/inventory' },
-    { label: 'Low Stock Alerts', value: stats.lowStock + stats.criticalStock, icon: AlertTriangle, link: '/inventory?filter=low' },
-    { label: 'Pending Reservations', value: stats.pendingReservations, icon: Clock, link: '/reservations' },
-  ]
+  const removeFromCart = (id) =>
+    setCart((prev) => {
+      const next = { ...prev };
+      if (next[id] > 1) next[id]--;
+      else delete next[id];
+      return next;
+    });
 
-  const typeIcons = { reservation: Clock, stockout: TrendingUp, expiry: AlertTriangle }
+  const filteredProducts =
+    search.trim() === ""
+      ? PRODUCTS
+      : PRODUCTS.filter((p) =>
+          p.name.toLowerCase().includes(search.toLowerCase())
+        );
 
-  const badgeForDemand = item =>
-    item.badge === 'Urgent Need' ? 'danger' : item.badge === 'High Demand' ? 'success' : 'warning'
-
-  if (loading) {
-    return (
-      <div className="loader-container"><div className="spinner" /></div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="dash-empty">
-        <h3>Something went wrong</h3>
-        <p>{error}</p>
-        <button
-          className="dash-upload-btn"
-          onClick={() => {
-            dispatch(getPharmacyStats())
-            dispatch(getActivityFeed())
-            dispatch(getDemandTrends())
-          }}
-        >
-          Try Again
-        </button>
-      </div>
-    )
-  }
+  const banner = BANNER_OFFERS[bannerIdx];
 
   return (
-    <div className="dashboard">
-      {/* Hero */}
-      <div className="hero-banner">
-        <div className="hero-content">
-          <h1>Welcome to your Pharmacy Hub</h1>
-          <p>Your smart inventory and prediction system is fully operational.</p>
-        </div>
-        <div className="hero-image-wrap">
-          <img src="/medicine-bottle.png" alt="Medicine" className="hero-image" />
-        </div>
-      </div>
-
-      {/* KPI cards from real stats */}
-      <div className="kpi-grid">
-        {kpis.map(item => (
-          <button key={item.label} className="kpi-card" onClick={() => navigate(item.link)}>
-            <div className="kpi-icon">
-              <item.icon className="icon-md" />
-            </div>
-            <div>
-              <p className="kpi-label">{item.label}</p>
-              <p className="kpi-value">{item.value}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Executive KPIs (static demo metrics, wire to real data when available) */}
-      <div className="kpi-grid">
-        {executiveKpis.map(item => (
-          <div key={item.label} className="kpi-card">
-            <div className="kpi-icon">
-              <item.icon className="icon-md" />
-            </div>
-            <div>
-              <p className="kpi-label">{item.label}</p>
-              <p className="kpi-value">{item.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid-2col">
-        <div className="card">
-          <div className="card-header row">
-            <div>
-              <h2 className="card-title">Investment vs Return Calculator</h2>
-              <p className="card-subtitle">Estimate revenue, net profit, ROI and break-even in real time.</p>
-            </div>
-            <Badge variant="info">ROI Intelligence</Badge>
-          </div>
-          <div className="card-content">
-            <div className="calc-grid">
-              <label className="field">
-                <span className="field-label">Product Name</span>
-                <select
-                  value={selectedProduct}
-                  onChange={e => setSelectedProduct(e.target.value)}
-                  className="field-input"
-                >
-                  {productOptions.map(product => (
-                    <option key={product.id} value={product.id}>{product.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span className="field-label">Purchase Quantity</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={purchaseQty}
-                  onChange={e => setPurchaseQty(Number(e.target.value))}
-                  className="field-input"
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">Purchase Price</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={purchasePrice}
-                  onChange={e => setPurchasePrice(Number(e.target.value))}
-                  className="field-input"
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">Selling Price</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={sellingPrice}
-                  onChange={e => setSellingPrice(Number(e.target.value))}
-                  className="field-input"
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">Logistics Cost</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={logisticsCost}
-                  onChange={e => setLogisticsCost(Number(e.target.value))}
-                  className="field-input"
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">Marketing Cost</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={marketingCost}
-                  onChange={e => setMarketingCost(Number(e.target.value))}
-                  className="field-input"
-                />
-              </label>
-            </div>
-
-            <div className="result-grid">
-              <div className="result-card">
-                <p className="result-label">Expected Revenue</p>
-                <p className="result-value">{formatCurrency(calculator.expectedRevenue)}</p>
-              </div>
-              <div className="result-card">
-                <p className="result-label">Gross Profit</p>
-                <p className="result-value">{formatCurrency(calculator.grossProfit)}</p>
-              </div>
-              <div className="result-card">
-                <p className="result-label">Net Profit</p>
-                <p className="result-value">{formatCurrency(calculator.netProfit)}</p>
-              </div>
-              <div className="result-card">
-                <p className="result-label">ROI</p>
-                <p className="result-value">{calculator.roi.toFixed(1)}%</p>
-              </div>
-              <div className="result-card result-card-wide">
-                <p className="result-label">Break-even Point</p>
-                <p className="result-value">
-                  {calculator.breakEvenPoint ? `${calculator.breakEvenPoint} units` : 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="stack">
-          <div className="card">
-            <div className="card-header row">
-              <div>
-                <h2 className="card-title">Live Product Demand Board</h2>
-                <p className="card-subtitle">Medicines currently being requested.</p>
-              </div>
-              <Badge variant="success">Killer Feature</Badge>
-            </div>
-            <div className="card-content table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Medicine</th>
-                    <th>Requests</th>
-                    <th>Growth</th>
-                    <th>Signal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {demandBoard.map(item => (
-                    <tr key={item.name}>
-                      <td className="medicine">{item.name}</td>
-                      <td>{item.requests}</td>
-                      <td>+{item.growth}%</td>
-                      <td>
-                        <Badge variant={badgeForDemand(item)}>{item.badge}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+    <div className="qmd-root">
+      {/* ══════════════════ TOP BAR ══════════════════ */}
+      <header className="qmd-topbar">
+        <div className="qmd-topbar-inner">
+          {/* Brand */}
+          <div className="qmd-brand">
+            <span className="qmd-brand-icon">⚕️</span>
+            <span className="qmd-brand-name">QuickMeds</span>
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Product Lifecycle Prediction</h2>
-            </div>
-            <div className="card-content list">
-              {lifecyclePredictions.map(item => (
-                <div key={item.product} className="list-row">
-                  <div>
-                    <p className="list-row-label">{item.product}</p>
-                    <p className="list-row-value">{item.status}</p>
-                  </div>
-                  <Badge variant={item.variant}>{item.status}</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid-2col-alt">
-        <div className="card">
-          <div className="card-header row">
-            <div>
-              <h2 className="card-title">Regional Demand Heatmap</h2>
-              <p className="card-subtitle">High-demand regions across major cities.</p>
-            </div>
-            <div className="eyebrow">Live view</div>
-          </div>
-          <div className="card-content">
-            <div className="region-grid">
-              {regionalDemand.map(region => (
-                <div key={region.city} className="region-card">
-                  <p className="region-city">{region.city}</p>
-                  <p className="region-value">{region.demand}%</p>
-                  <div className="progress-track">
-                    <div className="progress-fill" style={{ width: `${region.demand}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="stack">
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Fastest Growing Products</h2>
-            </div>
-            <div className="card-content list">
-              {fastestGrowing.map(item => (
-                <div key={item.name} className="list-row">
-                  <div>
-                    <p className="list-row-label">{item.name}</p>
-                    <p className="list-row-value">{item.growth}% growth</p>
-                  </div>
-                  <TrendingUp className="icon-md icon-accent" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Live Product Requests Feed</h2>
-            </div>
-            <div className="card-content feed">
-              {liveRequests.map(item => (
-                <div key={item.id} className="feed-card">
-                  <div className="feed-row">
-                    <p className="feed-label">{item.label}</p>
-                    <span className="feed-time">{item.time}</span>
-                  </div>
-                  <div className="feed-live">
-                    <Clock3 className="icon-sm" /> Live
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-header row">
-          <h2 className="card-title">Demand Trend — Top 5 Medicines</h2>
-          <div className="tabs">
-            {['daily', 'weekly', 'monthly'].map(p => (
+          {/* Search */}
+          <div className="qmd-search-wrap">
+            <span className="qmd-search-icon">🔍</span>
+            <input
+              id="qmd-search-input"
+              className="qmd-search-input"
+              type="text"
+              placeholder="Search medicines, vitamins, lab tests…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
               <button
-                key={p}
-                onClick={() => setChartPeriod(p)}
-                className={`tab-btn${chartPeriod === p ? ' active' : ''}`}
+                className="qmd-search-clear"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
               >
-                {p}
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="qmd-topbar-actions">
+            <button id="qmd-cart-btn" className="qmd-action-btn" aria-label="Cart">
+              🛒
+              {totalCartItems > 0 && (
+                <span className="qmd-badge">{totalCartItems}</span>
+              )}
+            </button>
+            <button id="qmd-notify-btn" className="qmd-action-btn" aria-label="Notifications">
+              🔔
+              <span className="qmd-badge" style={{ background: "#FF6F61" }}>3</span>
+            </button>
+            <div className="qmd-avatar" aria-label="User profile">
+              <img src="https://i.pravatar.cc/40?img=47" alt="User" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="qmd-main">
+
+        {/* ══════════════════ LOCATION STRIP ══════════════════ */}
+        <div className="qmd-location-strip">
+          <span className="qmd-loc-icon">📍</span>
+          <span className="qmd-loc-text">Deliver to&nbsp;<strong>Kolkata, 700001</strong></span>
+          <button className="qmd-loc-change">Change</button>
+        </div>
+
+        {/* ══════════════════ HERO BANNER CAROUSEL ══════════════════ */}
+        <section className="qmd-banner-section" aria-label="Promotional banners">
+          <div
+            className="qmd-banner"
+            style={{ background: banner.bg }}
+            key={banner.id}
+          >
+            <div className="qmd-banner-text">
+              <span className="qmd-banner-tag">{banner.tag}</span>
+              <h1 className="qmd-banner-title">
+                {banner.title.split("\n").map((line, i) => (
+                  <span key={i}>{line}</span>
+                ))}
+              </h1>
+              <p className="qmd-banner-sub">{banner.sub}</p>
+              <button id={`qmd-banner-cta-${banner.id}`} className="qmd-banner-cta">
+                {banner.cta} →
+              </button>
+            </div>
+            <div className="qmd-banner-emoji" aria-hidden="true">
+              {banner.emoji}
+            </div>
+          </div>
+
+          {/* Dots */}
+          <div className="qmd-dots">
+            {BANNER_OFFERS.map((_, i) => (
+              <button
+                key={i}
+                id={`qmd-dot-${i}`}
+                className={`qmd-dot ${i === bannerIdx ? "active" : ""}`}
+                onClick={() => {
+                  clearInterval(autoRef.current);
+                  setBannerIdx(i);
+                }}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════════════ QUICK LINKS ══════════════════ */}
+        <section className="qmd-section">
+          <div className="qmd-quick-links">
+            {[
+              { id: "ql-order",    icon: "🛒", label: "Order\nMedicines" },
+              { id: "ql-lab",      icon: "🧬", label: "Lab\nTests" },
+              { id: "ql-consult",  icon: "👨‍⚕️", label: "Consult\nDoctor" },
+              { id: "ql-upload",   icon: "📋", label: "Upload\nPrescription" },
+              { id: "ql-insurance",icon: "🏥", label: "Health\nInsurance" },
+              { id: "ql-emergency",icon: "🚑", label: "Emergency\nHelp" },
+            ].map((q) => (
+              <button key={q.id} id={q.id} className="qmd-quick-btn">
+                <span className="qmd-quick-icon">{q.icon}</span>
+                <span className="qmd-quick-label">
+                  {q.label.split("\n").map((l, i) => <span key={i}>{l}</span>)}
+                </span>
               </button>
             ))}
           </div>
-        </div>
-        <div className="card-content">
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
-                {Object.keys(chartData[0]).filter(k => k !== 'day').map((key, i) => (
-                  <Line key={key} type="monotone" dataKey={key} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={false} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#94a3b8', fontSize: '14px' }}>
-              No demand trend data available yet.
+        </section>
+
+        {/* ══════════════════ CATEGORIES ══════════════════ */}
+        <section className="qmd-section">
+          <div className="qmd-section-head">
+            <h2 className="qmd-section-title">Shop by Category</h2>
+            <a href="#" className="qmd-view-all">View All →</a>
+          </div>
+          <div className="qmd-categories">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.id}
+                id={`qmd-cat-${c.id}`}
+                className="qmd-category-btn"
+                style={{ "--cat-bg": c.color, "--cat-accent": c.accent }}
+              >
+                <span className="qmd-cat-emoji">{c.emoji}</span>
+                <span className="qmd-cat-label">{c.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════════════ PRODUCTS ══════════════════ */}
+        <section className="qmd-section">
+          <div className="qmd-section-head">
+            <h2 className="qmd-section-title">
+              {search ? `Results for "${search}"` : "Best Sellers"}
+            </h2>
+            {!search && <a href="#" className="qmd-view-all">See All →</a>}
+          </div>
+
+          {/* Filter tabs */}
+          {!search && (
+            <div className="qmd-tabs">
+              {["all", "vitamins", "ayurvedic", "personal care"].map((t) => (
+                <button
+                  key={t}
+                  id={`qmd-tab-${t.replace(" ", "-")}`}
+                  className={`qmd-tab-btn ${activeTab === t ? "active" : ""}`}
+                  onClick={() => setActiveTab(t)}
+                >
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
             </div>
           )}
-        </div>
-      </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">Live Activity Feed</h2>
-        </div>
-        <div className="card-content activity">
-          {activityFeed.length === 0 ? (
-            <p className="empty-state">No recent activity</p>
-          ) : (
-            activityFeed.map(item => {
-              const Icon = typeIcons[item.type] || Clock
+          <div className="qmd-products-grid">
+            {filteredProducts.map((p) => {
+              const discountPct = Math.round(((p.mrp - p.price) / p.mrp) * 100);
+              const qty = cart[p.id] || 0;
               return (
-                <button
-                  key={item.id}
-                  onClick={() => navigate(item.link)}
-                  className="activity-row"
-                >
-                  <div className="activity-icon">
-                    <Icon className="icon-sm" />
+                <div key={p.id} id={`qmd-prod-${p.id}`} className="qmd-product-card">
+                  {/* Wishlist */}
+                  <button
+                    className={`qmd-wishlist-btn ${wishlist.has(p.id) ? "active" : ""}`}
+                    onClick={() => toggleWishlist(p.id)}
+                    aria-label={`Toggle wishlist for ${p.name}`}
+                  >
+                    {wishlist.has(p.id) ? "♥" : "♡"}
+                  </button>
+
+                  {/* Tag */}
+                  {p.tag && <span className="qmd-prod-tag">{p.tag}</span>}
+
+                  {/* Image area */}
+                  <div className="qmd-prod-img" style={{ background: p.bg }}>
+                    <span className="qmd-prod-emoji">{p.emoji}</span>
                   </div>
-                  <div className="activity-text">
-                    <p className="activity-message">{item.message}</p>
-                    <p className="activity-time">{formatRelativeTime(item.time)}</p>
+
+                  {/* Info */}
+                  <div className="qmd-prod-info">
+                    <p className="qmd-prod-name">{p.name}</p>
+                    <p className="qmd-prod-pack">{p.pack}</p>
+                    <div className="qmd-prod-rating">
+                      <span className="qmd-star">★</span>
+                      <span className="qmd-rating-val">{p.rating}</span>
+                      <span className="qmd-rating-cnt">({p.reviews.toLocaleString()})</span>
+                    </div>
+                    <div className="qmd-prod-price-row">
+                      <span className="qmd-prod-price">₹{p.price}</span>
+                      <span className="qmd-prod-mrp">₹{p.mrp}</span>
+                      <span className="qmd-prod-discount">{discountPct}% off</span>
+                    </div>
                   </div>
+
+                  {/* Cart control */}
+                  {qty === 0 ? (
+                    <button
+                      className="qmd-add-btn"
+                      onClick={() => addToCart(p.id)}
+                      id={`qmd-add-${p.id}`}
+                    >
+                      ADD
+                    </button>
+                  ) : (
+                    <div className="qmd-qty-ctrl">
+                      <button
+                        className="qmd-qty-btn"
+                        onClick={() => removeFromCart(p.id)}
+                        aria-label="Decrease"
+                      >−</button>
+                      <span className="qmd-qty-val">{qty}</span>
+                      <button
+                        className="qmd-qty-btn"
+                        onClick={() => addToCart(p.id)}
+                        aria-label="Increase"
+                      >+</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {filteredProducts.length === 0 && (
+              <p className="qmd-empty">No medicines found for "{search}"</p>
+            )}
+          </div>
+        </section>
+
+        {/* ══════════════════ LAB TESTS ══════════════════ */}
+        <section className="qmd-section qmd-lab-section">
+          <div className="qmd-section-head">
+            <h2 className="qmd-section-title">Book Lab Tests at Home</h2>
+            <a href="#" className="qmd-view-all">View All →</a>
+          </div>
+          <div className="qmd-lab-grid">
+            {LAB_TESTS.map((t) => (
+              <div key={t.id} id={`qmd-lab-${t.id}`} className="qmd-lab-card">
+                <div className="qmd-lab-icon-wrap">🧬</div>
+                <p className="qmd-lab-name">{t.name}</p>
+                <p className="qmd-lab-tests">{t.tests} included</p>
+                <div className="qmd-lab-price-row">
+                  <span className="qmd-lab-price">₹{t.price}</span>
+                  <span className="qmd-lab-original">₹{t.originalPrice}</span>
+                  <span className="qmd-lab-discount">{t.discount}</span>
+                </div>
+                <p className="qmd-lab-tat">🕐 {t.tat}</p>
+                <button className="qmd-lab-btn" id={`qmd-book-${t.id}`}>
+                  Book Now
                 </button>
-              )
-            })
-          )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════════════ CONSULT BANNER ══════════════════ */}
+        <section className="qmd-consult-banner">
+          <div className="qmd-consult-text">
+            <p className="qmd-consult-tag">AVAILABLE 24×7</p>
+            <h2 className="qmd-consult-title">Consult a Doctor Online</h2>
+            <p className="qmd-consult-sub">
+              General Physician · Specialists · Nutritionist
+            </p>
+            <button id="qmd-consult-cta" className="qmd-consult-cta">
+              Consult Now
+            </button>
+          </div>
+          <div className="qmd-consult-emoji" aria-hidden="true">👨‍⚕️</div>
+        </section>
+
+        {/* ══════════════════ MY ORDERS ══════════════════ */}
+        <section className="qmd-section">
+          <div className="qmd-section-head">
+            <h2 className="qmd-section-title">My Recent Orders</h2>
+            <a href="/reservations" className="qmd-view-all">View All →</a>
+          </div>
+          <div className="qmd-orders-list">
+            {MY_ORDERS.map((o) => (
+              <div key={o.id} id={`qmd-order-${o.id}`} className="qmd-order-card">
+                <div className="qmd-order-icon">📦</div>
+                <div className="qmd-order-info">
+                  <p className="qmd-order-name">{o.name}</p>
+                  <p className="qmd-order-date">{o.date}</p>
+                </div>
+                <span
+                  className="qmd-order-status"
+                  style={{ color: o.statusColor, background: o.statusBg }}
+                >
+                  {o.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════════════ HEALTH FEED ══════════════════ */}
+        <section className="qmd-section">
+          <div className="qmd-section-head">
+            <h2 className="qmd-section-title">Health Articles & Videos</h2>
+            <a href="#" className="qmd-view-all">More →</a>
+          </div>
+          <div className="qmd-health-feed">
+            {HEALTH_FEED.map((h) => (
+              <div key={h.id} id={`qmd-health-${h.id}`} className="qmd-health-card">
+                <div className="qmd-health-icon">{h.icon}</div>
+                <div className="qmd-health-body">
+                  <span className="qmd-health-tag">{h.tag}</span>
+                  <p className="qmd-health-title">{h.title}</p>
+                  <p className="qmd-health-time">{h.time}</p>
+                </div>
+                <span className="qmd-health-arrow">›</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════════════ TRUST STRIP ══════════════════ */}
+        <div className="qmd-trust-strip">
+          {[
+            { icon: "🚚", label: "Free Delivery", sub: "Above ₹299" },
+            { icon: "✅", label: "Genuine Meds",  sub: "100% Authentic" },
+            { icon: "↩️", label: "Easy Returns",  sub: "7-day policy" },
+            { icon: "🔒", label: "Secure Pay",    sub: "SSL Encrypted" },
+          ].map((t) => (
+            <div key={t.label} className="qmd-trust-item">
+              <span className="qmd-trust-icon">{t.icon}</span>
+              <div>
+                <p className="qmd-trust-label">{t.label}</p>
+                <p className="qmd-trust-sub">{t.sub}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+
+      </main>
+
+      {/* ══════════════════ BOTTOM NAV (mobile) ══════════════════ */}
+      <nav className="qmd-bottom-nav" aria-label="Main navigation">
+        {[
+          { id: "nav-home",    icon: "🏠", label: "Home"    },
+          { id: "nav-orders",  icon: "📦", label: "Orders"  },
+          { id: "nav-consult", icon: "👨‍⚕️", label: "Consult" },
+          { id: "nav-profile", icon: "👤", label: "Profile" },
+        ].map((n) => (
+          <button key={n.id} id={n.id} className="qmd-bottom-btn">
+            <span className="qmd-bottom-icon">{n.icon}</span>
+            <span className="qmd-bottom-label">{n.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
-  )
+  );
 }

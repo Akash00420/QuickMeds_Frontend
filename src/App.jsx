@@ -52,7 +52,7 @@ const AppLayout = () => {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const { notifications } = useSelector((s) => s.notification);
 
-  const hideNavbarRoutes = ["/", "/login", "/register", "/admin"];
+  const hideNavbarRoutes = ["/", "/login", "/register", "/admin", "/dashboard"];
   const hideNavbar = hideNavbarRoutes.includes(location.pathname);
 
   const handleNotifyOpen = () => {
