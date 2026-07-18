@@ -5,13 +5,13 @@ const API_URL = "/medicines";
 
 /* ---------- Async Thunks ---------- */
 
-// Search medicines via GET /medicines/search?name=&category=&lat=&lng=
+// Search medicines via GET /medicines/all?name=&category=
 export const getAllMedicines = createAsyncThunk(
   "medicine/getAll",
   async (params = {}, { rejectWithValue }) => {
     try {
-      const res = await api.get(`${API_URL}/search`, { params });
-      return res.data;
+      const res = await api.get(`${API_URL}/all`, { params });
+      return res.data; // { success, message, data: { medicines } }
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to fetch medicines"
@@ -26,7 +26,7 @@ export const suggestMedicines = createAsyncThunk(
   async (q, { rejectWithValue }) => {
     try {
       const res = await api.get(`${API_URL}/suggest`, { params: { q } });
-      return res.data;
+      return res.data; // { success, message, data: { suggestions } }
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to get suggestions"
@@ -40,7 +40,7 @@ export const getMedicineById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const res = await api.get(`${API_URL}/${id}`);
-      return res.data;
+      return res.data; // { success, message, data: { medicine } }
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to fetch medicine"
@@ -54,7 +54,7 @@ export const addMedicine = createAsyncThunk(
   async (medicineData, { rejectWithValue }) => {
     try {
       const res = await api.post(`${API_URL}`, medicineData);
-      return res.data;
+      return res.data; // { success, message, data: { medicine } }
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to add medicine"
@@ -68,7 +68,7 @@ export const updateMedicine = createAsyncThunk(
   async ({ id, updates }, { rejectWithValue }) => {
     try {
       const res = await api.put(`${API_URL}/${id}`, updates);
-      return res.data;
+      return res.data; // { success, message, data: { medicine } }
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to update medicine"
@@ -95,6 +95,7 @@ export const deleteMedicine = createAsyncThunk(
 
 const initialState = {
   medicines: [],
+  suggestions: [],
   selectedMedicine: null,
   loading: false,
   error: null,
@@ -122,34 +123,47 @@ const medicineSlice = createSlice({
       })
       .addCase(getAllMedicines.fulfilled, (state, action) => {
         state.loading = false;
-        state.medicines = action.payload;
+        state.medicines = action.payload.data.medicines;
       })
       .addCase(getAllMedicines.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
+
+      // suggest
+      .addCase(suggestMedicines.fulfilled, (state, action) => {
+        state.suggestions = action.payload.data.suggestions;
+      })
+      .addCase(suggestMedicines.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+
       // get by id
       .addCase(getMedicineById.fulfilled, (state, action) => {
-        state.selectedMedicine = action.payload;
+        state.selectedMedicine = action.payload.data.medicine;
       })
       .addCase(getMedicineById.rejected, (state, action) => {
         state.error = action.payload;
       })
+
       // add
       .addCase(addMedicine.fulfilled, (state, action) => {
-        state.medicines.push(action.payload);
+        state.medicines.push(action.payload.data.medicine);
       })
       .addCase(addMedicine.rejected, (state, action) => {
         state.error = action.payload;
       })
+
       // update
       .addCase(updateMedicine.fulfilled, (state, action) => {
-        const idx = state.medicines.findIndex((m) => m._id === action.payload._id);
-        if (idx !== -1) state.medicines[idx] = action.payload;
+        const updated = action.payload.data.medicine;
+        const idx = state.medicines.findIndex((m) => m._id === updated._id);
+        if (idx !== -1) state.medicines[idx] = updated;
       })
       .addCase(updateMedicine.rejected, (state, action) => {
         state.error = action.payload;
       })
+
       // delete
       .addCase(deleteMedicine.fulfilled, (state, action) => {
         state.medicines = state.medicines.filter((m) => m._id !== action.payload);
