@@ -1,69 +1,152 @@
-import { useState } from 'react'
-import { Camera, Mail, Phone, MapPin, ShieldCheck, Eye, EyeOff } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useSelector } from 'react-redux'
+import { Camera, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react'
+import api from '../store/Api'
 import '../assets/custom.css'
 
-const initialProfile = {
-  fullName: 'Ananya Sharma',
-  email: 'ananya@citycarepharmacy.com',
-  phone: '+91 98765 43210',
-  address: '14 MG Road, Kolkata, West Bengal',
-  role: 'Pharmacy Owner',
-  memberSince: 'March 2024',
+// TODO: replace with a real thunk (e.g. updateProfile) in AuthSlice once
+// a "PATCH /users/:id" (or similar) endpoint exists on the backend.
+async function updateProfileRequest(payload) {
+  const res = await api.put('/users/update-profile', payload)
+  return res.data
 }
 
-const initialPharmacy = {
-  storeName: 'City Care Pharmacy',
-  licenseNumber: 'WB-PH-2024-00931',
-  gstNumber: '19ABCDE1234F1Z5',
-  storeAddress: '14 MG Road, Kolkata, West Bengal, 700001',
+// TODO: replace with a real thunk once a stats endpoint exists
+// (e.g. GET /orders/summary, GET /reservations/summary).
+async function fetchProfileStats() {
+  const res = await api.get('/users/profile-stats')
+  return res.data
 }
 
-const stats = [
-  { label: 'Total Orders', value: 482 },
-  { label: 'Active Since', value: '1.4 yrs' },
-  { label: 'Reservations', value: 37 },
-]
+function formatMemberSince(dateString) {
+  if (!dateString) return '—'
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+function formatAddress(address) {
+  if (!address) return ''
+  if (typeof address === 'string') return address // fallback, just in case
+  return [address.street, address.city, address.state, address.pincode]
+    .filter(Boolean)
+    .join(', ')
+}
+
+function getInitials(name) {
+  if (!name) return '?'
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map(part => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
 
 export default function Profile() {
-  const [profile, setProfile] = useState(initialProfile)
-  const [pharmacy, setPharmacy] = useState(initialPharmacy)
-  const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
-  const [showCurrent, setShowCurrent] = useState(false)
-  const [showNext, setShowNext] = useState(false)
+  const authUser = useSelector(state => state.auth.user)
+
+  const [profile, setProfile] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    role: 'Customer',
+    memberSince: '',
+  })
+
+  const [stats, setStats] = useState([
+    { label: 'Total Orders', value: '—' },
+    { label: 'Active Since', value: '—' },
+    { label: 'Reservations', value: '—' },
+  ])
+
   const [savedSection, setSavedSection] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
+
+  // Hydrate the form from the logged-in user in Redux whenever it changes
+  useEffect(() => {
+    if (!authUser) return
+    setProfile({
+      fullName: authUser.name || authUser.fullName || '',
+      email: authUser.email || '',
+      phone: authUser.phone || '',
+      address: formatAddress(authUser.address),
+      role: authUser.role
+        ? authUser.role.charAt(0).toUpperCase() + authUser.role.slice(1)
+        : 'Customer',
+      memberSince: formatMemberSince(authUser.createdAt),
+    })
+  }, [authUser])
+
+  // Pull real stats from the backend instead of hardcoding them
+  useEffect(() => {
+    let cancelled = false
+    if (!authUser) return
+
+    fetchProfileStats()
+      .then(data => {
+        if (cancelled) return
+        setStats([
+          { label: 'Total Orders', value: data?.totalOrders ?? 0 },
+          { label: 'Active Since', value: data?.activeSince ?? formatMemberSince(authUser.createdAt) },
+          { label: 'Reservations', value: data?.reservations ?? 0 },
+        ])
+      })
+      .catch(() => {
+        // Endpoint not wired up yet — fall back to what we know locally
+        if (cancelled) return
+        setStats([
+          { label: 'Total Orders', value: 0 },
+          { label: 'Active Since', value: formatMemberSince(authUser.createdAt) },
+          { label: 'Reservations', value: 0 },
+        ])
+      })
+
+    return () => { cancelled = true }
+  }, [authUser])
 
   const updateProfile = (field, value) => setProfile(prev => ({ ...prev, [field]: value }))
-  const updatePharmacy = (field, value) => setPharmacy(prev => ({ ...prev, [field]: value }))
-  const updatePassword = (field, value) => setPasswords(prev => ({ ...prev, [field]: value }))
 
   const flashSaved = section => {
     setSavedSection(section)
     setTimeout(() => setSavedSection(null), 2000)
   }
 
-  const handleProfileSubmit = e => {
+  const handleProfileSubmit = async e => {
     e.preventDefault()
-    flashSaved('profile')
+    setSaveError(null)
+    setSaving(true)
+    try {
+      await updateProfileRequest({
+        name: profile.fullName,
+        email: profile.email,
+        phone: profile.phone,
+        address: profile.address,
+      })
+      flashSaved('profile')
+    } catch (err) {
+      setSaveError(
+        err.response?.data?.message || err.message || 'Could not save changes'
+      )
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handlePharmacySubmit = e => {
-    e.preventDefault()
-    flashSaved('pharmacy')
+  if (!authUser) {
+    return (
+      <div className="profile-page">
+        <div className="profile-header-card">
+          <p>You need to be logged in to view your profile.</p>
+        </div>
+      </div>
+    )
   }
 
-  const handlePasswordSubmit = e => {
-    e.preventDefault()
-    if (!passwords.current || !passwords.next || passwords.next !== passwords.confirm) return
-    setPasswords({ current: '', next: '', confirm: '' })
-    flashSaved('password')
-  }
-
-  const initials = profile.fullName
-    .split(' ')
-    .map(part => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
+  const initials = getInitials(profile.fullName)
 
   return (
     <div className="profile-page">
@@ -76,7 +159,7 @@ export default function Profile() {
         </div>
 
         <div className="profile-header-info">
-          <h1>{profile.fullName}</h1>
+          <h1>{profile.fullName || 'Unnamed user'}</h1>
           <span className="profile-role-badge">
             <ShieldCheck size={13} /> {profile.role}
           </span>
@@ -93,8 +176,8 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="profile-grid">
-        <form className="profile-card" onSubmit={handleProfileSubmit}>
+      <div className="profile-grid profile-grid-single">
+        <form className="profile-card profile-card-wide" onSubmit={handleProfileSubmit}>
           <div className="profile-card-header">
             <h2>Personal Information</h2>
             {savedSection === 'profile' && <span className="profile-saved">Saved</span>}
@@ -125,6 +208,7 @@ export default function Profile() {
               <input
                 type="tel"
                 className="profile-input"
+                placeholder="Not provided yet"
                 value={profile.phone}
                 onChange={e => updateProfile('phone', e.target.value)}
               />
@@ -134,128 +218,18 @@ export default function Profile() {
               <span className="profile-label"><MapPin size={13} /> Address</span>
               <input
                 className="profile-input"
+                placeholder="Not provided yet"
                 value={profile.address}
                 onChange={e => updateProfile('address', e.target.value)}
               />
             </label>
           </div>
 
-          <button type="submit" className="profile-save-btn">Save changes</button>
-        </form>
+          {saveError && <p className="profile-error">{saveError}</p>}
 
-        <form className="profile-card" onSubmit={handlePharmacySubmit}>
-          <div className="profile-card-header">
-            <h2>Pharmacy Details</h2>
-            {savedSection === 'pharmacy' && <span className="profile-saved">Saved</span>}
-          </div>
-
-          <div className="profile-field-grid">
-            <label className="profile-field">
-              <span className="profile-label">Store name</span>
-              <input
-                className="profile-input"
-                value={pharmacy.storeName}
-                onChange={e => updatePharmacy('storeName', e.target.value)}
-              />
-            </label>
-
-            <label className="profile-field">
-              <span className="profile-label">License number</span>
-              <input
-                className="profile-input"
-                value={pharmacy.licenseNumber}
-                onChange={e => updatePharmacy('licenseNumber', e.target.value)}
-              />
-            </label>
-
-            <label className="profile-field">
-              <span className="profile-label">GST number</span>
-              <input
-                className="profile-input"
-                value={pharmacy.gstNumber}
-                onChange={e => updatePharmacy('gstNumber', e.target.value)}
-              />
-            </label>
-
-            <label className="profile-field">
-              <span className="profile-label">Store address</span>
-              <input
-                className="profile-input"
-                value={pharmacy.storeAddress}
-                onChange={e => updatePharmacy('storeAddress', e.target.value)}
-              />
-            </label>
-          </div>
-
-          <button type="submit" className="profile-save-btn">Save changes</button>
-        </form>
-
-        <form className="profile-card profile-card-wide" onSubmit={handlePasswordSubmit}>
-          <div className="profile-card-header">
-            <h2>Change Password</h2>
-            {savedSection === 'password' && <span className="profile-saved">Updated</span>}
-          </div>
-
-          <div className="profile-field-grid three-col">
-            <label className="profile-field">
-              <span className="profile-label">Current password</span>
-              <div className="profile-input-wrap">
-                <input
-                  type={showCurrent ? 'text' : 'password'}
-                  className="profile-input"
-                  value={passwords.current}
-                  onChange={e => updatePassword('current', e.target.value)}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="profile-input-icon-btn"
-                  onClick={() => setShowCurrent(v => !v)}
-                  aria-label="Toggle current password visibility"
-                >
-                  {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </label>
-
-            <label className="profile-field">
-              <span className="profile-label">New password</span>
-              <div className="profile-input-wrap">
-                <input
-                  type={showNext ? 'text' : 'password'}
-                  className="profile-input"
-                  value={passwords.next}
-                  onChange={e => updatePassword('next', e.target.value)}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="profile-input-icon-btn"
-                  onClick={() => setShowNext(v => !v)}
-                  aria-label="Toggle new password visibility"
-                >
-                  {showNext ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </label>
-
-            <label className="profile-field">
-              <span className="profile-label">Confirm new password</span>
-              <input
-                type={showNext ? 'text' : 'password'}
-                className="profile-input"
-                value={passwords.confirm}
-                onChange={e => updatePassword('confirm', e.target.value)}
-                placeholder="••••••••"
-              />
-            </label>
-          </div>
-
-          {passwords.next && passwords.confirm && passwords.next !== passwords.confirm && (
-            <p className="profile-error">New passwords do not match.</p>
-          )}
-
-          <button type="submit" className="profile-save-btn">Update password</button>
+          <button type="submit" className="profile-save-btn" disabled={saving}>
+            {saving ? 'Saving...' : 'Save changes'}
+          </button>
         </form>
       </div>
     </div>

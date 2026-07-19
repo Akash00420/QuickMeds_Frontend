@@ -18,6 +18,8 @@ function GoogleIcon() {
 const initialForm = {
   fullName: '',
   email: '',
+  phone: '',
+  address: '',
   password: '',
   confirmPassword: '',
   agreeToTerms: false,
@@ -41,6 +43,12 @@ export default function Register() {
     const next = {}
     if (!form.fullName.trim()) next.fullName = 'Full name is required'
     if (!form.email.trim()) next.email = 'Email address is required'
+    if (!form.phone.trim()) {
+      next.phone = 'Phone number is required'
+    } else if (!/^[0-9+\-\s()]{7,15}$/.test(form.phone.trim())) {
+      next.phone = 'Enter a valid phone number'
+    }
+    if (!form.address.trim()) next.address = 'Address is required'
     if (form.password.length < 8) next.password = 'Password must be at least 8 characters'
     if (form.confirmPassword !== form.password) next.confirmPassword = 'Passwords do not match'
     if (!form.agreeToTerms) next.agreeToTerms = 'You must accept the terms to continue'
@@ -56,6 +64,8 @@ export default function Register() {
     const result = await dispatch(registerUser({
       name: form.fullName,
       email: form.email,
+      phone: form.phone,
+      address: form.address, // backend wraps this into { street: address }
       password: form.password,
       confirm_password: form.confirmPassword,
     }));
@@ -104,7 +114,31 @@ export default function Register() {
               {errors.email && <span className="register-error">{errors.email}</span>}
             </label>
 
+            <div className="register-field-row">
+              <label className="register-field">
+                <span className="register-label">Phone number</span>
+                <input
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  value={form.phone}
+                  onChange={e => updateField('phone', e.target.value)}
+                  className={`register-input${errors.phone ? ' has-error' : ''}`}
+                />
+                {errors.phone && <span className="register-error">{errors.phone}</span>}
+              </label>
 
+              <label className="register-field">
+                <span className="register-label">Address</span>
+                <input
+                  type="text"
+                  placeholder="Street, city, state"
+                  value={form.address}
+                  onChange={e => updateField('address', e.target.value)}
+                  className={`register-input${errors.address ? ' has-error' : ''}`}
+                />
+                {errors.address && <span className="register-error">{errors.address}</span>}
+              </label>
+            </div>
 
             <div className="register-field-row">
               <label className="register-field">
