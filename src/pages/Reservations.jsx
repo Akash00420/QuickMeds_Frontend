@@ -18,32 +18,22 @@ export default function Reservations() {
     }
   };
 
+  // ✅ FIX: backend statuses are "pending" | "confirmed" | "ready" | "completed" | "cancelled"
+  // (see updateReservationStatus / cancelReservation controllers) — not "approved"/"rejected".
   const getStatusStyle = (status) => {
     switch (status) {
-      case "approved":
-        return {
-          background: "#d1fae5",
-          color: "#065f46",
-          badge: "Approved",
-        };
-      case "rejected":
-        return {
-          background: "#fee2e2",
-          color: "#991b1b",
-          badge: "Rejected",
-        };
+      case "confirmed":
+        return { background: "#d1fae5", color: "#065f46", badge: "Confirmed" };
+      case "ready":
+        return { background: "#dbeafe", color: "#1e40af", badge: "Ready for Pickup" };
+      case "completed":
+        return { background: "#e0e7ff", color: "#3730a3", badge: "Completed" };
+      case "cancelled":
+        return { background: "#fee2e2", color: "#991b1b", badge: "Cancelled" };
       case "pending":
-        return {
-          background: "#fef3c7",
-          color: "#92400e",
-          badge: "Pending Approval",
-        };
+        return { background: "#fef3c7", color: "#92400e", badge: "Pending Approval" };
       default:
-        return {
-          background: "#f1f5f9",
-          color: "#334155",
-          badge: status,
-        };
+        return { background: "#f1f5f9", color: "#334155", badge: status };
     }
   };
 
@@ -85,6 +75,18 @@ export default function Reservations() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.25rem" }}>
           {reservations.map((res) => {
             const statusConfig = getStatusStyle(res.status);
+
+            // ✅ FIX: reservations store multiple line items under `items`,
+            // each shaped { medicine, name, quantity, price } — there is no
+            // top-level medicineName/quantity field.
+            const items = res.items || [];
+            const primaryItem = items[0];
+            const itemsLabel =
+              items.length > 1
+                ? `${primaryItem?.name || "Item"} +${items.length - 1} more`
+                : primaryItem?.name || "Reservation";
+            const totalQty = items.reduce((sum, it) => sum + (it.quantity || 0), 0);
+
             return (
               <div key={res._id} className="card" style={{ padding: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.5rem" }}>
                 <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
@@ -93,11 +95,11 @@ export default function Reservations() {
                   </div>
                   <div>
                     <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0f172a", margin: "0 0 4px" }}>
-                      {res.medicineName}
+                      {itemsLabel}
                     </h3>
                     <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", fontSize: "0.85rem", color: "#64748b" }}>
                       <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <strong>Qty:</strong> {res.quantity}
+                        <strong>Qty:</strong> {totalQty}
                       </span>
                       {res.createdAt && (
                         <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -109,10 +111,10 @@ export default function Reservations() {
                           })}
                         </span>
                       )}
-                      {res.pharmacyName && (
+                      {res.pharmacy?.name && (
                         <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                           <MapPin size={13} />
-                          {res.pharmacyName}
+                          {res.pharmacy.name}
                         </span>
                       )}
                     </div>

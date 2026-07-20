@@ -89,7 +89,7 @@ export const verifyOTP = createAsyncThunk(
 // ── RESET PASSWORD ───────────────────────────
 export const resetPassword = createAsyncThunk(
   "auth/resetPassword",
-  async ({ resetToken, newPassword }, { rejectWithValue }) => { // ✅ fixed params
+  async ({ resetToken, newPassword }, { rejectWithValue }) => {
     try {
       const res = await api.post("/forgot-password/reset-password", {
         resetToken,
@@ -104,13 +104,35 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+// ── REHYDRATE FROM SESSIONSTORAGE ─────────────
+// ✅ FIX: on a hard refresh, Redux state resets to null even though
+// login already saved { token, user, role } to sessionStorage. Without
+// this, every page reload looks "logged out" until the user signs in again.
+function loadPersistedAuth() {
+  try {
+    const raw = sessionStorage.getItem("quickmeds_token");
+    if (!raw) return { user: null, token: null };
+    const parsed = JSON.parse(raw);
+    return {
+      user: parsed?.user || null,
+      token: parsed?.token || null,
+    };
+  } catch {
+    // Corrupted/old-format value — don't crash the app over it
+    sessionStorage.removeItem("quickmeds_token");
+    return { user: null, token: null };
+  }
+}
+
+const persisted = loadPersistedAuth();
+
 // ── SLICE ────────────────────────────────────
 const initialState = {
   loading:    false,
   error:      null,
-  user:       null,
-  token:      null,
-  resetToken: null, // ✅ store resetToken after OTP verify
+  user:       persisted.user,   // ✅ FIX: was hardcoded null
+  token:      persisted.token,  // ✅ FIX: was hardcoded null
+  resetToken: null,
 };
 
 const AuthSlice = createSlice({
@@ -135,16 +157,16 @@ const AuthSlice = createSlice({
         state.error   = null;
       })
       .addCase(login.fulfilled, (state, { payload }) => {
-  state.loading = false;
-  state.error   = null;
-  state.token   = payload.token;
-  state.user    = payload.user;
-  sessionStorage.setItem("quickmeds_token", JSON.stringify({
-    token: payload.token,
-    user:  payload.user,
-    role:  payload.user?.role,   // ← NEW
-  }));
-})
+        state.loading = false;
+        state.error   = null;
+        state.token   = payload.token;
+        state.user    = payload.user;
+        sessionStorage.setItem("quickmeds_token", JSON.stringify({
+          token: payload.token,
+          user:  payload.user,
+          role:  payload.user?.role,
+        }));
+      })
       .addCase(login.rejected, (state, { payload }) => {
         state.loading = false;
         state.error   = payload?.msg || payload?.message ||
@@ -197,7 +219,7 @@ const AuthSlice = createSlice({
       .addCase(verifyOTP.fulfilled, (state, { payload }) => {
         state.loading    = false;
         state.error      = null;
-        state.resetToken = payload.resetToken; // ✅ save resetToken in state
+        state.resetToken = payload.resetToken;
       })
       .addCase(verifyOTP.rejected, (state, { payload }) => {
         state.loading = false;
@@ -212,7 +234,7 @@ const AuthSlice = createSlice({
       .addCase(resetPassword.fulfilled, (state) => {
         state.loading    = false;
         state.error      = null;
-        state.resetToken = null; // ✅ clear resetToken after use
+        state.resetToken = null;
       })
       .addCase(resetPassword.rejected, (state, { payload }) => {
         state.loading = false;
